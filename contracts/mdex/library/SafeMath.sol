@@ -1,6 +1,6 @@
-pragma solidity ^0.6.0;
+pragma solidity >=0.5.0 <0.8.0;
 
-library MdexSafeMath {
+library SafeMath {
     uint256 constant WAD = 10 ** 18;
     uint256 constant RAY = 10 ** 27;
 

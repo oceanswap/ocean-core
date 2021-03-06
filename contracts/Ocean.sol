@@ -5,8 +5,8 @@ import '@openzeppelin/contracts/token/ERC20/ERC20Burnable.sol';
 import '@openzeppelin/contracts/token/ERC20/ERC20Capped.sol';
 
 
-contract Share is ERC20Burnable, ERC20Capped, Operator {
-    constructor() public ERC20('OCEAN', 'OCN') ERC20Capped(2000000000* 10**18) {
+contract Ocean is ERC20Burnable, ERC20Capped, Operator {
+    constructor() public ERC20('OCEAN', 'Ocean') ERC20Capped(1000000000* 10**18) {
         // Mints 1 Basis Share to contract creator for initial Uniswap oracle deployment.
         // Will be burned after oracle deployment
         //_mint(msg.sender, 10 * 10**18);

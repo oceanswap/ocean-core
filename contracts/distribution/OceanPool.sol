@@ -66,10 +66,10 @@ import '../token/LPTokenWrapper.sol';
 
 import '@openzeppelin/contracts/access/Ownable.sol';
 
-contract BKK1BBS2BBSPool is LPTokenWrapper, Ownable
+contract OceanPool is LPTokenWrapper, Ownable
 {
-    IERC20 public basisShare;
-    uint256 public DURATION = 7 days;
+    IERC20 public ocean;
+    uint256 public DURATION = 1 days;
 
     uint256 public starttime;
     uint256 public periodFinish = 0;
@@ -79,6 +79,7 @@ contract BKK1BBS2BBSPool is LPTokenWrapper, Ownable
     mapping(address => uint256) public userRewardPerTokenPaid;
     mapping(address => uint256) public rewards;
     bool public open = true;
+    uint256 public shutdownTime = 0;
 
     event RewardAdded(uint256 reward);
     event Staked(address indexed user, uint256 amount);
@@ -86,11 +87,11 @@ contract BKK1BBS2BBSPool is LPTokenWrapper, Ownable
     event RewardPaid(address indexed user, uint256 reward);
 
     constructor(
-        address basisShare_,
+        address ocean_,
         address lptoken_,
         uint256 starttime_
     ) public {
-        basisShare = IERC20(basisShare_);
+        ocean = IERC20(ocean_);
         lpt = IERC20(lptoken_);
         starttime = starttime_;
     }
@@ -98,7 +99,7 @@ contract BKK1BBS2BBSPool is LPTokenWrapper, Ownable
     modifier checkStart() {
         require(
             block.timestamp >= starttime,
-            'BKK1BBS2BBSPool: not start'
+            'Pool: not start'
         );
         _;
     }
@@ -114,12 +115,15 @@ contract BKK1BBS2BBSPool is LPTokenWrapper, Ownable
     }
 
     modifier checkOpen() {
-        require(open, "BKK1BBS2BBSPoolL: Pool is closed");
+        require(open, "Pool: Pool is closed");
         _;
     }
 
     function shutdown() public onlyOwner {
+        require(open == true, "cannot shut down twice");
+        require(block.timestamp < periodFinish, "cannot shut down after periodFinish");
         open = false;
+        shutdownTime = block.timestamp;
     }
 
     function lastTimeRewardApplicable() public view returns (uint256) {
@@ -135,7 +139,7 @@ contract BKK1BBS2BBSPool is LPTokenWrapper, Ownable
             lastTimeRewardApplicable()
             .sub(lastUpdateTime)
             .mul(rewardRate)
-            .mul(1e18)
+            .mul(1e18)//totalSupply is in order of 10*18
             .div(totalSupply())
         );
     }
@@ -156,7 +160,7 @@ contract BKK1BBS2BBSPool is LPTokenWrapper, Ownable
     checkStart
     checkOpen
     {
-        require(amount > 0, 'BKK1BBS2BBSPool: Cannot stake 0');
+        require(amount > 0, 'Pool: Cannot stake 0');
         super.stake(amount);
         emit Staked(msg.sender, amount);
     }
@@ -167,7 +171,7 @@ contract BKK1BBS2BBSPool is LPTokenWrapper, Ownable
     updateReward(msg.sender)
     checkStart
     {
-        require(amount > 0, 'BKK1BBS2BBSPool: Cannot withdraw 0');
+        require(amount > 0, 'Pool: Cannot withdraw 0');
         super.withdraw(amount);
         emit Withdrawn(msg.sender, amount);
     }
@@ -183,13 +187,13 @@ contract BKK1BBS2BBSPool is LPTokenWrapper, Ownable
         uint256 reward = earned(msg.sender);
         if (reward > 0) {
             rewards[msg.sender] = 0;
-            basisShare.safeTransfer(msg.sender, reward);
+            ocean.safeTransfer(msg.sender, reward);
             emit RewardPaid(msg.sender, reward);
         }
     }
 
     function transferBack(address back, uint256 amount) external onlyOwner {
-        basisShare.safeTransfer(back, amount);
+        ocean.safeTransfer(back, amount);
     }
 
     function notifyRewardAmount(uint256 reward)
@@ -199,8 +203,10 @@ contract BKK1BBS2BBSPool is LPTokenWrapper, Ownable
     {
         if (block.timestamp > starttime) {
             if (block.timestamp >= periodFinish) {
+                // if it's finished, set new rewardRate and new periodFinish
                 rewardRate = reward.div(DURATION);
             } else {
+                // if it's not finished, update rewardRate with remaining token and extend periodFinish from now to now + DURATION
                 uint256 remaining = periodFinish.sub(block.timestamp);
                 uint256 leftover = remaining.mul(rewardRate);
                 rewardRate = reward.add(leftover).div(DURATION);
@@ -215,4 +221,33 @@ contract BKK1BBS2BBSPool is LPTokenWrapper, Ownable
             emit RewardAdded(reward);
         }
     }
+
+    //=======
+    // only use after shutdown
+    function earnedShutdown(address account) public view returns (uint256) {
+        require(open == false, "Pool: Pool is open");
+
+        return
+        balanceOf(account)
+        .mul(rewardPerTokenShutdown().sub(userRewardPerTokenPaid[account]))
+        .div(1e18)
+        .add(rewards[account]);
+    }
+
+    function rewardPerTokenShutdown() public view returns (uint256) {
+        require(open == false, "Pool: Pool is open");
+        if (totalSupply() == 0) {
+            return rewardPerTokenStored;
+        }
+        return
+        rewardPerTokenStored.add(
+            shutdownTime
+            .sub(lastUpdateTime)
+            .mul(rewardRate)
+            .mul(1e18)
+            .div(totalSupply()
+            )
+        );
+    }
+
 }

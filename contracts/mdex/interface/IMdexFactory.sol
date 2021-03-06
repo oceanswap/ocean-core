@@ -1,8 +1,6 @@
-pragma solidity ^0.6.0;
+pragma solidity >=0.5.0 <0.8.0;
 
 interface IMdexFactory {
-    function initCodeHash() external view returns(bytes32);
-
     event PairCreated(address indexed token0, address indexed token1, address pair, uint);
 
     function feeTo() external view returns (address);

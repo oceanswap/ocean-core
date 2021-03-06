@@ -10,6 +10,7 @@ truffle-config.js
 
 *.log
 
+scripts-old
 scripts
 
 *.mnemonic
@@ -20,3 +21,6 @@ scripts
 migrations/
 
 test
+artifacts
+
+cache
