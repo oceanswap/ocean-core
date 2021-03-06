@@ -6,7 +6,9 @@
   "license": "MIT",
   "scripts": {
     "compile": "npx hardhat compile --force",
-    "deploy:dev": "npx hardhat run scripts/deploy.js --network hardhat"
+    "deploy:dev": "npx hardhat run scripts/deploy.js --network hardhat",
+    "deploy:huobi": "npx hardhat run scripts/deploy.js --network huobi"
+
   },
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.1",

@@ -32,7 +32,8 @@ module.exports = {
       throwOnCallFailures:true,
     },
     huobi: {
-      url: "wss://ws-mainnet-node.huobichain.com",
+      //url: "https://http-mainnet.hecochain.com",
+      url: "https://http-mainnet-node.huobichain.com",
       chainId: 128,
       gas:3000000,
       gasPrice:9000000000,
