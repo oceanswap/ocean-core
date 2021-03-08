@@ -44,6 +44,20 @@ module.exports = {
         count:10,
       },
       timeout: 20 * 1000
+    },
+
+    bsc: {
+      url: "https://bsc-dataseed.binance.org/",
+      chainId: 56,
+      gas:3000000,
+      gasPrice:9000000000,
+      accounts: {
+        mnemonic: huobi_mnemonic,
+        initialIndex: 0,
+        path:"m/44'/60'/0'/0",
+        count:10,
+      },
+      timeout: 20 * 1000
     }
   },
   solidity: {
