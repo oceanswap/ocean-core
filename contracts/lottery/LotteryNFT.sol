@@ -9,6 +9,7 @@ contract LotteryNFT is ERC721, Ownable {
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIds;
 
+    // tokenId -> XXX
     mapping (uint256 => uint8[4]) public lotteryInfo;
     mapping (uint256 => uint256) public lotteryAmount;
     mapping (uint256 => uint256) public issueIndex;

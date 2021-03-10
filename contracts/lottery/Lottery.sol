@@ -28,7 +28,7 @@ contract Lottery is LotteryOwnable, Initializable {
     // maxNumber
     uint8 public maxNumber;
     // minPrice, if decimal is not 18, please reset it
-    uint256 public minPrice;
+    uint256 public ticketPrice;
 
     // =================================
 
@@ -42,11 +42,14 @@ contract Lottery is LotteryOwnable, Initializable {
     mapping(uint256 => mapping(uint64 => uint256)) public userBuyAmountSum;
     // address => [tokenId]
     mapping(address => uint256[]) public userInfo;
+    // address => issueIndex => [tokenId]
+    mapping(address => mapping(uint256 => uint256[])) public userInfoByIssueIndex;
 
     uint256 public issueIndex = 0;
     uint256 public totalAddresses = 0;
     uint256 public totalAmount = 0;
     uint256 public lastTimestamp;
+    uint256 public totalBurn = 0;
 
     //第0,1,2,3位
     uint8[4] public winningNumbers;
@@ -67,18 +70,18 @@ contract Lottery is LotteryOwnable, Initializable {
     constructor(
         IERC20 _ODT,
         LotteryNFT _lottery,
-        uint256 _minPrice,
+        uint256 _ticketPrice,
         uint8 _maxNumber,
         address _owner,
         address _adminAddress
     ) public {
         ODT = _ODT;
         lotteryNFT = _lottery;
-        minPrice = _minPrice;
+        ticketPrice = _ticketPrice;
         maxNumber = _maxNumber;
         adminAddress = _adminAddress;
         lastTimestamp = block.timestamp;
-        allocation = [60, 20, 10];
+        allocation = [50, 20, 10];
         initOwner(_owner);
     }
 
@@ -93,6 +96,11 @@ contract Lottery is LotteryOwnable, Initializable {
     modifier inDrawingPhase() {
         require(!drawed(), 'drawed, can not buy now');
         require(!drawingPhase, 'drawing, can not buy now');
+        _;
+    }
+
+    modifier totalBurnedODT(uint256 _price) {
+        totalBurn += _price.div(10);
         _;
     }
 
@@ -208,8 +216,8 @@ contract Lottery is LotteryOwnable, Initializable {
 
     }
 
-    function buy(uint256 _price, uint8[4] memory _numbers) external inDrawingPhase {
-        require(_price >= minPrice, 'price must above minPrice');
+    function buy(uint256 _price, uint8[4] memory _numbers) external inDrawingPhase totalBurnedODT(_price) {
+        require(_price == ticketPrice, 'price must above minPrice');
         for (uint i = 0; i < 4; i++) {
             require(_numbers[i] <= maxNumber, 'exceed number scope');
         }
@@ -219,6 +227,7 @@ contract Lottery is LotteryOwnable, Initializable {
             totalAddresses = totalAddresses + 1;
         }
         userInfo[msg.sender].push(tokenId);
+        userInfoByIssueIndex[msg.sender][issueIndex].push(tokenId);
         totalAmount = totalAmount.add(_price);
         lastTimestamp = block.timestamp;
         uint64[keyLengthForEachBuy] memory userNumberIndex = generateNumberIndexKey(_numbers);
@@ -229,8 +238,8 @@ contract Lottery is LotteryOwnable, Initializable {
         emit Buy(msg.sender, tokenId);
     }
 
-    function multiBuy(uint256 _price, uint8[4][] memory _numbers) external inDrawingPhase {
-        require(_price >= minPrice, 'price must above minPrice');
+    function multiBuy(uint256 _price, uint8[4][] memory _numbers) external inDrawingPhase totalBurnedODT(_price) {
+        require(_price == ticketPrice, 'price must above minPrice');
         uint256 totalPrice = 0;
         for (uint i = 0; i < _numbers.length; i++) {
             for (uint j = 0; j < 4; j++) {
@@ -242,6 +251,7 @@ contract Lottery is LotteryOwnable, Initializable {
                 totalAddresses = totalAddresses + 1;
             }
             userInfo[msg.sender].push(tokenId);
+            userInfoByIssueIndex[msg.sender][issueIndex].push(tokenId);
             totalAmount = totalAmount.add(_price);
             lastTimestamp = block.timestamp;
             totalPrice = totalPrice.add(_price);
@@ -376,6 +386,11 @@ contract Lottery is LotteryOwnable, Initializable {
         return reward.div(1e12);
     }
 
+    //be sure you have maximal gaslimit
+    function getTickets(address someone, uint256 issueIndex) public view returns (uint256[] memory){
+        return userInfoByIssueIndex[someone][issueIndex];
+    }
+
 
     // Update admin address by the previous dev.
     function setAdmin(address _adminAddress) public onlyOwner {
@@ -389,8 +404,8 @@ contract Lottery is LotteryOwnable, Initializable {
     }
 
     // Set the minimum price for one ticket
-    function setMinPrice(uint256 _price) external onlyAdmin {
-        minPrice = _price;
+    function setTicketPrice(uint256 _price) external onlyAdmin {
+        ticketPrice = _price;
     }
 
     // Set the minimum price for one ticket

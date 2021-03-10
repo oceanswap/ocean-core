@@ -9,7 +9,10 @@
     "deploy:dev": "npx hardhat run scripts/deploy.js --network hardhat",
     "deploy:huobi": "npx hardhat run scripts/deploy.js --network huobi",
     "deploy:reopen": "npx hardhat run scripts/goon.js --network huobi",
-    "deploy:lottery": "npx hardhat run scripts/lottery.js --network huobi"
+    "deploy:lottery": "npx hardhat run scripts/lottery.js --network huobi",
+    "deploy:lotteryEnterDraw": "npx hardhat run scripts/lotteryTimerEnterDraw.js --network huobi",
+    "test": "npx hardhat run tests/lottery.test.js --network hardhat"
+
   },
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.1",
