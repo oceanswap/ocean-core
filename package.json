@@ -9,8 +9,13 @@
     "deploy:dev": "npx hardhat run scripts/deploy.js --network hardhat",
     "deploy:huobi": "npx hardhat run scripts/deploy.js --network huobi",
     "deploy:reopen": "npx hardhat run scripts/goon.js --network huobi",
-    "deploy:lottery": "npx hardhat run scripts/lottery.js --network huobi",
+    "deploy:deployLottery": "npx hardhat run scripts/deployedLottery.js --network huobi",
     "deploy:lotteryEnterDraw": "npx hardhat run scripts/lotteryTimerEnterDraw.js --network huobi",
+    "deploy:lotteryDraw": "npx hardhat run scripts/lotteryTimerDraw.js --network huobi",
+    "deploy:lotteryDrawCheat": "npx hardhat run scripts/lotteryTimerDrawCheat.js --network huobi",
+    "deploy:lotteryReset": "npx hardhat run scripts/lotteryTimerReset.js --network huobi",
+    "deploy:ido": "npx hardhat run ../ocean-core/scripts/deployIDO.js --network huobi_ido",
+
     "test": "npx hardhat run tests/lottery.test.js --network hardhat"
 
   },

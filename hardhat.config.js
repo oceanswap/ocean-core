@@ -7,6 +7,7 @@ const path = require('path')
 require("@nomiclabs/hardhat-waffle");
 
 const huobi_mnemonic = fs.readFileSync(path.resolve('./huobi.mnemonic')).toString().trim();
+const ido_mnemonic = fs.readFileSync(path.resolve('./ido.mnemonic')).toString().trim();
 
 
 task("accounts", "Prints the list of accounts", async () => {
@@ -39,6 +40,20 @@ module.exports = {
       gasPrice:9000000000,
       accounts: {
         mnemonic: huobi_mnemonic,
+        initialIndex: 0,
+        path:"m/44'/60'/0'/0",
+        count:10,
+      },
+      timeout: 20 * 1000
+    },
+
+    huobi_ido: {
+      url: "https://http-mainnet-node.huobichain.com",
+      chainId: 128,
+      gas:3000000,
+      gasPrice:9000000000,
+      accounts: {
+        mnemonic: ido_mnemonic,
         initialIndex: 0,
         path:"m/44'/60'/0'/0",
         count:10,

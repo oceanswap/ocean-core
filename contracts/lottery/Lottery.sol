@@ -17,8 +17,9 @@ contract Lottery is LotteryOwnable, Initializable {
     using SafeERC20 for IERC20;
 
     uint8 constant keyLengthForEachBuy = 11;
-    // Allocation for first/sencond/third reward
+    // Allocation for first/second/third reward
     uint8[3] public allocation;
+    bool[3] public accumulation;
     // The TOKEN to buy lottery
     IERC20 public ODT;
     // The Lottery NFT for tickets
@@ -51,12 +52,12 @@ contract Lottery is LotteryOwnable, Initializable {
     uint256 public lastTimestamp;
     uint256 public totalBurn = 0;
 
-    //第0,1,2,3位
     uint8[4] public winningNumbers;
 
     // default false
     bool public drawingPhase;
-
+    uint256 public currentIssueIndexStartTime = 0;
+    address public burnAddress;
     // =================================
 
     event Buy(address indexed user, uint256 tokenId);
@@ -73,7 +74,8 @@ contract Lottery is LotteryOwnable, Initializable {
         uint256 _ticketPrice,
         uint8 _maxNumber,
         address _owner,
-        address _adminAddress
+        address _adminAddress,
+        address _burnAddress
     ) public {
         ODT = _ODT;
         lotteryNFT = _lottery;
@@ -82,7 +84,10 @@ contract Lottery is LotteryOwnable, Initializable {
         adminAddress = _adminAddress;
         lastTimestamp = block.timestamp;
         allocation = [50, 20, 10];
+        accumulation = [true,true,true];
         initOwner(_owner);
+        currentIssueIndexStartTime = block.timestamp;
+        burnAddress = _burnAddress;
     }
 
 
@@ -96,11 +101,6 @@ contract Lottery is LotteryOwnable, Initializable {
     modifier inDrawingPhase() {
         require(!drawed(), 'drawed, can not buy now');
         require(!drawingPhase, 'drawing, can not buy now');
-        _;
-    }
-
-    modifier totalBurnedODT(uint256 _price) {
-        totalBurn += _price.div(10);
         _;
     }
 
@@ -119,10 +119,25 @@ contract Lottery is LotteryOwnable, Initializable {
         winningNumbers[3] = 0;
         drawingPhase = false;
         issueIndex = issueIndex + 1;
-        if (getMatchingRewardAmount(issueIndex - 1, 4) == 0) {
-            uint256 amount = getTotalRewards(issueIndex - 1).mul(allocation[0]).div(100);
-            internalBuy(amount, nullTicket);
+
+        uint256 lastRoundTotalRewards = getTotalRewards(issueIndex - 1);
+        //prize index, 0 for 4 numbers, 1 for 3 numbers, 2 for 2 numbers
+        for(uint256 prize =0;prize<3;prize++){
+            if (getMatchingRewardAmount(issueIndex - 1, 4-prize) == 0) {
+                uint256 burnAmount = lastRoundTotalRewards.mul(allocation[prize]).div(100);
+                if(accumulation[prize]){
+                    internalBuy(burnAmount, nullTicket);
+                }else{
+                    burnTickets(burnAmount);
+                }
+            }
         }
+
+        uint256 burnRate = uint256(100).sub(allocation[0]).sub(allocation[1]).sub(allocation[2]);
+        uint256 burnAmount = lastRoundTotalRewards.mul(burnRate).div(100);
+        burnTickets(burnAmount);
+
+        currentIssueIndexStartTime = block.timestamp;
         emit Reset(issueIndex);
     }
 
@@ -130,6 +145,40 @@ contract Lottery is LotteryOwnable, Initializable {
         require(!drawed(), 'drawed');
         drawingPhase = true;
     }
+
+    //only for test
+//    function drawingCheat(uint256 n1, uint256 n2, uint256 n3, uint256 n4) external onlyAdmin {
+//        require(!drawed(), "reset?");
+//        require(drawingPhase, "enter drawing phase first");
+//        bytes32 _structHash;
+//        uint256 _randomNumber;
+//        uint8 _maxNumber = maxNumber;
+//        bytes32 _blockhash = blockhash(block.number - 1);
+//
+//        // waste some gas fee here
+//        for (uint i = 0; i < 10; i++) {
+//            getTotalRewards(issueIndex);
+//        }
+//        uint256 gasleft = gasleft();
+//
+//        // 1
+//        winningNumbers[0] = uint8(n1);
+//
+//        // 2
+//        winningNumbers[1] = uint8(n2);
+//
+//        // 3
+//        winningNumbers[2] = uint8(n3);
+//
+//        // 4
+//        winningNumbers[3] = uint8(n4);
+//
+//        historyNumbers[issueIndex] = winningNumbers;
+//        historyAmount[issueIndex] = calculateMatchingRewardAmount();
+//        drawingPhase = false;
+//        emit Drawing(issueIndex, winningNumbers);
+//    }
+
 
     // add externalRandomNumber to prevent node validators exploiting
     function drawing(uint256 _externalRandomNumber) external onlyAdmin {
@@ -216,7 +265,7 @@ contract Lottery is LotteryOwnable, Initializable {
 
     }
 
-    function buy(uint256 _price, uint8[4] memory _numbers) external inDrawingPhase totalBurnedODT(_price) {
+    function buy(uint256 _price, uint8[4] memory _numbers) external inDrawingPhase {
         require(_price == ticketPrice, 'price must above minPrice');
         for (uint i = 0; i < 4; i++) {
             require(_numbers[i] <= maxNumber, 'exceed number scope');
@@ -238,7 +287,7 @@ contract Lottery is LotteryOwnable, Initializable {
         emit Buy(msg.sender, tokenId);
     }
 
-    function multiBuy(uint256 _price, uint8[4][] memory _numbers) external inDrawingPhase totalBurnedODT(_price) {
+    function multiBuy(uint256 _price, uint8[4][] memory _numbers) external inDrawingPhase {
         require(_price == ticketPrice, 'price must above minPrice');
         uint256 totalPrice = 0;
         for (uint i = 0; i < _numbers.length; i++) {
@@ -328,6 +377,11 @@ contract Lottery is LotteryOwnable, Initializable {
         return result;
     }
 
+    function burnTickets(uint256 amount) internal {
+        totalBurn += amount;
+        ODT.safeTransfer(burnAddress, amount);
+    }
+
     function calculateMatchingRewardAmount() internal view returns (uint256[4] memory) {
         uint64[keyLengthForEachBuy] memory numberIndexKey = generateNumberIndexKey(winningNumbers);
 
@@ -387,8 +441,15 @@ contract Lottery is LotteryOwnable, Initializable {
     }
 
     //be sure you have maximal gaslimit
-    function getTickets(address someone, uint256 issueIndex) public view returns (uint256[] memory){
-        return userInfoByIssueIndex[someone][issueIndex];
+    function getTickets(address someone, uint256 issueIndex) public view returns (uint8[4][] memory){
+        uint8[4][] memory ret = new uint8[4][](userInfoByIssueIndex[someone][issueIndex].length);
+
+        for(uint256 i = 0; i < userInfoByIssueIndex[someone][issueIndex].length; i++){
+            uint256 tokenId = userInfoByIssueIndex[someone][issueIndex][i];
+            uint8[4] memory tokenNumber = lotteryNFT.getLotteryNumbers(tokenId);
+            ret[i] = tokenNumber;
+        }
+        return ret;
     }
 
 
@@ -417,6 +478,15 @@ contract Lottery is LotteryOwnable, Initializable {
     function setAllocation(uint8 _allcation1, uint8 _allcation2, uint8 _allcation3) external onlyAdmin {
         require(_allcation1 + _allcation2 + _allcation3 < 100, 'exceed 100');
         allocation = [_allcation1, _allcation2, _allcation3];
+    }
+
+    // Set the accumulation for one reward
+    function setAccumulation(bool _allcation1, bool _allcation2, bool _allcation3) external onlyAdmin {
+        accumulation = [_allcation1, _allcation2, _allcation3];
+    }
+
+    function setBurnAddress(address _burnAddress) external onlyAdmin{
+        burnAddress = _burnAddress;
     }
 
 }
