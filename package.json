@@ -16,7 +16,7 @@
     "deploy:lotteryReset": "npx hardhat run scripts/lotteryTimerReset.js --network huobi",
     "deploy:ido": "npx hardhat run ../ocean-core/scripts/deployIDO.js --network huobi_ido",
 
-    "test": "npx hardhat run tests/lottery.test.js --network hardhat"
+    "test": "npx hardhat run scripts/test.js --network huobi_ido"
 
   },
   "devDependencies": {

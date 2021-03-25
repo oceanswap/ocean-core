@@ -22,9 +22,10 @@ contract IDO is Ownable, ReentrancyGuard {
     //an auxiliary array for loop
     address[] public purchasedList;
     IERC20 public targetToken;
+    //sourceToken => price
     mapping(IERC20 => uint256) public sourceAmounts;//need source token amount per subscription, zero for not allowed
-    uint256 public targetAmountFactor;//redeem target token amount per subscription
-    uint256 public targetTotalSupply;//for targetAmountFactor, in
+    uint256 public targetAmountFactor;//redeem target token amount per subscription, normally it is 1
+    uint256 public targetTotalSupply;//for targetAmountFactor
     uint256 public targetTokenMultiplicationFactor;
 
     event Purchase(address indexed buyer, address sourceToken, uint256 sourceAmount, uint256 targetAmountFactor);
@@ -59,7 +60,7 @@ contract IDO is Ownable, ReentrancyGuard {
 
     modifier inPurchase(){
         require(startTime <= block.timestamp, "IDO has not started");
-        require(block.timestamp < endTime, "");
+        require(block.timestamp < endTime, "IDO has end");
         _;
     }
 
@@ -72,6 +73,16 @@ contract IDO is Ownable, ReentrancyGuard {
         require(address(targetToken) != address(0), "Target token addres not set");
         require(targetTokenMultiplicationFactor >0, "targetTokenMultiplicationFactor should not be zero");
         _;
+    }
+
+    function redeemable(address buyer) view external returns(bool){
+        if(block.timestamp < redeemTime){
+            return false;
+        }
+        if(purchasedAmountFactor[buyer] == uint256(0)){
+            return false;
+        }
+        return true;
     }
 
     function purchase(IERC20 sourceToken) inPurchase nonReentrant external {
@@ -184,15 +195,20 @@ contract IDO is Ownable, ReentrancyGuard {
     }
 
     function changeRedeemTime(uint256 _redeemTime) onlyOwner external {
+        if(_redeemTime == uint256(0)){
+            _redeemTime = block.timestamp;
+        }
         require(endTime < _redeemTime, "endTime < _redeemTime");
         redeemTime = _redeemTime;
     }
 
-    function changeTargetToken(IERC20 _targetToken) onlyOwner external {
+    function changeTargetTokenAndMultiplicationFacto(IERC20 _targetToken,uint256 _targetTokenMultiplicationFactor) onlyOwner external {
         targetToken = _targetToken;
+        targetTokenMultiplicationFactor = _targetTokenMultiplicationFactor;
     }
 
-    function changeSourceTokenAmmout(IERC20 _sourceToken, uint256 _sourceAmount) onlyOwner external {
+    function changeSourceTokenAmount(IERC20 _sourceToken, uint256 _sourceAmount) onlyOwner external {
         sourceAmounts[_sourceToken] = _sourceAmount;
     }
+
 }
