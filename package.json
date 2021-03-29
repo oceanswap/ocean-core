@@ -5,27 +5,38 @@
   "repository": "https://github.com/oceanswap/ocean-core",
   "license": "MIT",
   "scripts": {
-    "compile": "npx hardhat compile --force",
-    "deploy:dev": "npx hardhat run scripts/deploy.js --network hardhat",
-    "deploy:huobi": "npx hardhat run scripts/deploy.js --network huobi",
-    "deploy:reopen": "npx hardhat run scripts/goon.js --network huobi",
-    "deploy:deployLottery": "npx hardhat run scripts/deployedLottery.js --network huobi",
-    "deploy:lotteryEnterDraw": "npx hardhat run scripts/lotteryTimerEnterDraw.js --network huobi",
-    "deploy:lotteryDraw": "npx hardhat run scripts/lotteryTimerDraw.js --network huobi",
-    "deploy:lotteryDrawCheat": "npx hardhat run scripts/lotteryTimerDrawCheat.js --network huobi",
-    "deploy:lotteryReset": "npx hardhat run scripts/lotteryTimerReset.js --network huobi",
-    "deploy:ido": "npx hardhat run ../ocean-core/scripts/deployIDO.js --network huobi_ido",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build:ts": "yarn run tsc",
+    "build:sc": "npx hardhat compile",
 
-    "test": "npx hardhat run scripts/test.js --network huobi_ido"
+    "deploy:dev": "npx hardhat run scripts/deploy.ts --network hardhat",
+    "deploy:huobi": "npx hardhat run scripts/deploy.ts --network huobi",
+    "deploy:reopen": "npx hardhat run scripts/reopen.ts --network huobi",
+    "deploy:deployLottery": "npx hardhat run scripts/deployLottery.ts --network huobi",
+    "deploy:lotteryEnterDraw": "npx hardhat run scripts/lotteryTimerEnterDraw.ts --network huobi",
+    "deploy:lotteryDraw": "npx hardhat run scripts/lotteryTimerDraw.ts --network huobi",
+    "deploy:lotteryDrawCheat": "npx hardhat run scripts/lotteryTimerDrawCheat.ts --network huobi",
+    "deploy:lotteryReset": "npx hardhat run scripts/lotteryTimerReset.ts --network huobi",
+    "deploy:ido": "npx hardhat run scripts/deployIDO.ts --network huobi_ido",
+    "withdrawIDO": "npx hardhat run scripts/withdrawIDO.ts --network huobi_ido",
+    "updateIDO": "npx hardhat run scripts/updateIDO.ts --network huobi_ido",
+
+    "readIDO": "npx hardhat run scripts/readIDO.ts --network huobi_ido"
 
   },
   "devDependencies": {
-    "@nomiclabs/hardhat-ethers": "^2.0.1",
+    "typescript": "^4.2.3",
+    "ts-node": "^9.1.1",
+    "@nomiclabs/hardhat-ethers": "^2.0.2",
     "@nomiclabs/hardhat-waffle": "^2.0.1",
-    "chai": "^4.3.0",
+    "@types/chai": "^4.2.15",
+    "@types/mocha": "^8.2.2",
+    "@types/node": "^14.14.35",
+    "chai": "^4.3.4",
     "ethereum-waffle": "^3.3.0",
-    "ethers": "^5.0.31",
-    "hardhat": "^2.0.11"
+    "ethers": "^5.0.32",
+    "hardhat": "^2.1.2",
+    "mocha": "^8.3.2"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^3.3.0"
